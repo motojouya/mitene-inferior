@@ -1,8 +1,8 @@
 // import React, { Component } from 'react';
-import React from 'react';
+import React, { useState } from 'react';
 import Amplify from 'aws-amplify';
 // import { Authenticator } from 'aws-amplify-react';
-import { withAuthenticator } from 'aws-amplify-react';
+import { withAuthenticator, S3Album } from 'aws-amplify-react';
 
 import PropTypes from 'prop-types';
 import AppBar from '@material-ui/core/AppBar';
@@ -16,13 +16,43 @@ import MenuIcon from '@material-ui/icons/Menu';
 import Settings from '@material-ui/icons/Settings';
 import ArrowBack from '@material-ui/icons/ArrowBack';
 import AddToPhotos from '@material-ui/icons/AddToPhotos';
+import RemoveCircle from '@material-ui/icons/RemoveCircle';
+import AddCircle from '@material-ui/icons/AddCircle';
+import DeleteForever from '@material-ui/icons/DeleteForever';
+import Create from '@material-ui/icons/Create';
+import Edit from '@material-ui/icons/Edit';
+
+import Divider from '@material-ui/core/Divider';
+
+import ListSubheader from '@material-ui/core/ListSubheader';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
+import ListItemText from '@material-ui/core/ListItemText';
+import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
+import Collapse from '@material-ui/core/Collapse';
+import InboxIcon from '@material-ui/icons/MoveToInbox';
+import DraftsIcon from '@material-ui/icons/Drafts';
+import SendIcon from '@material-ui/icons/Send';
+import ExpandLess from '@material-ui/icons/ExpandLess';
+import ExpandMore from '@material-ui/icons/ExpandMore';
+import StarBorder from '@material-ui/icons/StarBorder';
+
+
 
 Amplify.configure({
   Auth: {
+    identityPoolId: 'ap-northeast-1:c6f2c8dd-2c9a-4fb6-b5c2-653c5aee9401',
     region: 'ap-northeast-1',
     userPoolId: 'ap-northeast-1_9TnIBH7mj',
     userPoolWebClientId: '4megifsql6rfeje1n1b35f01h5',
-  }
+  },
+  Storage: {
+    AWSS3: {
+      bucket: 'mitene-inferior',
+      region: 'ap-northeast-1',
+    }
+  },
 });
 
 // const AppWithAuth = () => <Authenticator />;
@@ -54,7 +84,7 @@ Amplify.configure({
 // 
 // export default App;
 
-const styles = theme => ({
+const headerStyles = theme => ({
   root: {
     width: '100%',
   },
@@ -122,39 +152,201 @@ const styles = theme => ({
 });
 
 const PrimarySearchAppBar = ({ classes }) => {
+  const [config, showConfig] = useState(true);
   return (
     <div className={classes.root}>
-      <AppBar position="static">
-        <Toolbar>
-          <IconButton className={classes.menuButton} color="inherit" aria-label="Open drawer">
-            <MenuIcon />
-          </IconButton>
-          <Typography className={classes.title} variant="h6" color="inherit" noWrap>
-            Mitene Inferior
-          </Typography>
-          <div className={classes.grow} />
-          <IconButton color="inherit">
-            <ArrowBack />
-          </IconButton>
-          <IconButton color="inherit">
-            <AddToPhotos />
-          </IconButton>
-          <IconButton
-            aria-owns="material-appbar"
-            aria-haspopup="true"
-            color="inherit"
-          >
-            <Settings />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
+      <HeaderBar classes={classes} showConfig={showConfig} />
+      {!config && <S3Album path="" picker />}
+      {config && <Nest />}
     </div>
   );
 }
+
+const HeaderBar = ({ classes, showConfig }) => {
+  return (
+    <AppBar position="static">
+      <Toolbar>
+        <IconButton className={classes.menuButton} color="inherit" aria-label="Open drawer">
+          <MenuIcon />
+        </IconButton>
+        <Typography className={classes.title} variant="h6" color="inherit" noWrap>
+          Mitene Inferior
+        </Typography>
+        <div className={classes.grow} />
+        <IconButton color="inherit" onClick={() => showConfig(false)}>
+          <ArrowBack />
+        </IconButton>
+        <IconButton color="inherit">
+          <AddToPhotos />
+        </IconButton>
+        <IconButton
+          aria-owns="material-appbar"
+          aria-haspopup="true"
+          color="inherit"
+          onClick={() => showConfig(true)}
+        >
+          <Settings />
+        </IconButton>
+      </Toolbar>
+    </AppBar>
+  );
+};
+
+const Configs = () => {
+  return (
+    <div>
+
+- album
+  - father RemoveCircle
+  - mother RemoveCircle
+  - grand father RemoveCircle
+  - grand mother RemoveCircle
+  - .. RemoveCircle
+  - add family AddCircle
+- change album
+  - .. DeleteForever
+  - .. DeleteForever
+  - make album Create
+- indivisuals
+  - name Edit
+  - email Edit
+  - password Edit
+  - logout
+    </div>
+  );
+};
 
 PrimarySearchAppBar.propTypes = {
   classes: PropTypes.object.isRequired,
 };
 
-export default withAuthenticator(withStyles(styles)(PrimarySearchAppBar));
+
+
+const listStyles = theme => ({
+  root: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: theme.palette.background.paper,
+  },
+  nested: {
+    paddingLeft: theme.spacing.unit * 4,
+  },
+});
+
+const NestedList = ({ classes }) => {
+  return (
+    <div>
+      <List
+        component="nav"
+        subheader={<ListSubheader component="div">Menber of Album</ListSubheader>}
+        className={classes.root}
+      >
+        <ListItem>
+          <ListItemText primary="ワイ" secondary="father" />
+          <ListItemSecondaryAction>
+            <IconButton aria-label="Remove">
+              <RemoveCircle />
+            </IconButton>
+          </ListItemSecondaryAction>
+        </ListItem>
+        <ListItem>
+          <ListItemText primary="ヨッメ" secondary="mother" />
+          <ListItemSecondaryAction>
+            <IconButton aria-label="Remove">
+              <RemoveCircle />
+            </IconButton>
+          </ListItemSecondaryAction>
+        </ListItem>
+        <ListItem>
+          <ListItemText primary="オカン" secondary="grand mother" />
+          <ListItemSecondaryAction>
+            <IconButton aria-label="Remove">
+              <RemoveCircle />
+            </IconButton>
+          </ListItemSecondaryAction>
+        </ListItem>
+        <ListItem>
+          <ListItemText primary="オヤジ" secondary="grand father" />
+          <ListItemSecondaryAction>
+            <IconButton aria-label="Remove">
+              <RemoveCircle />
+            </IconButton>
+          </ListItemSecondaryAction>
+        </ListItem>
+        <ListItem>
+          <ListItemIcon>
+            <AddCircle />
+          </ListItemIcon>
+          <ListItemText primary="Add Family" />
+        </ListItem>
+      </List>
+      <Divider variant="middle" style={{ marginBottom: '30px' }}/>
+      <List
+        component="nav"
+        subheader={<ListSubheader component="div">Albums you join in</ListSubheader>}
+        className={classes.root}
+      >
+        <ListItem>
+          <ListItemText primary="ムスコ" />
+          <ListItemSecondaryAction>
+            <IconButton aria-label="Delete">
+              <DeleteForever />
+            </IconButton>
+          </ListItemSecondaryAction>
+        </ListItem>
+        <ListItem>
+          <ListItemIcon>
+            <AddCircle />
+          </ListItemIcon>
+          <ListItemText primary="Create Album" />
+        </ListItem>
+      </List>
+      <Divider variant="middle" style={{ marginBottom: '30px' }}/>
+      <List
+        component="nav"
+        subheader={<ListSubheader component="div">Your Profile</ListSubheader>}
+        className={classes.root}
+      >
+        <ListItem>
+          <ListItemText primary="ワイ" />
+          <ListItemSecondaryAction>
+            <IconButton aria-label="Edit">
+              <Edit />
+            </IconButton>
+          </ListItemSecondaryAction>
+        </ListItem>
+        <ListItem>
+          <ListItemText primary="test@gmail.com" />
+          <ListItemSecondaryAction>
+            <IconButton aria-label="Edit">
+              <Edit />
+            </IconButton>
+          </ListItemSecondaryAction>
+        </ListItem>
+        <ListItem>
+          <ListItemText primary="Password" />
+          <ListItemSecondaryAction>
+            <IconButton aria-label="Edit">
+              <Edit />
+            </IconButton>
+          </ListItemSecondaryAction>
+        </ListItem>
+        <ListItem>
+          <ListItemText primary="Sign Out" />
+        </ListItem>
+      </List>
+    </div>
+  );
+};
+
+NestedList.propTypes = {
+  classes: PropTypes.object.isRequired,
+};
+
+const Nest = withStyles(listStyles)(NestedList);
+
+
+
+
+export default withAuthenticator(withStyles(headerStyles)(PrimarySearchAppBar));
 
