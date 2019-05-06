@@ -229,61 +229,112 @@ const listStyles = theme => ({
     backgroundColor: theme.palette.background.paper,
   },
   nested: {
-    paddingLeft: theme.spacing.unit * 4,
+    paddingLeft: theme.spacing.unit * 3,
   },
 });
+
+const AlbumContext = React.createContext();
+
+const AlbumMember = ({ member: { cognitoUsername, name, relative } }) => {
+  return (
+    <AlbumContext.Consumer>
+      { context =>
+        <ListItem>
+          <ListItemText primary={name} secondary={relative} />
+          <ListItemSecondaryAction>
+            <IconButton aria-label="Remove" onClick={() => context.removeMember(cognitoUsername)}>
+              <RemoveCircle />
+            </IconButton>
+          </ListItemSecondaryAction>
+        </ListItem>
+      }
+    </AlbumContext.Consumer>
+  );
+};
+
+const AlbumItem = ({ album: { basic: { albumId, albumName }, members } }) => {
+  const [isOpen, changeOpen] = useState(false);
+  return (
+    <AlbumContext.Consumer>
+      { context =>
+        <>
+          <ListItem>
+            <ListItemText primary={albumName} />
+            <ListItemSecondaryAction>
+              <IconButton aria-label="Delete" onClick={() => context.deleteAlbum(albumId)}>
+                <DeleteForever />
+              </IconButton>
+            </ListItemSecondaryAction>
+            <ListItemSecondaryAction>
+              <IconButton aria-label="Delete" onClick={() => context.changeOpen(!isOpen)}>
+                {isOpen ? <ExpandLess /> : <ExpandMore />}
+              </IconButton>
+            </ListItemSecondaryAction>
+          </ListItem>
+          <Collapse in={isOpen} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding className={context.classes.nested}>
+              { members.map(member => <AlbumMember member={member} />) }
+              <ListItem>
+                <ListItemIcon>
+                  <IconButton aria-label="Add" onClick={() => context.addMember(albumId)}>
+                    <AddCircle />
+                  </IconButton>
+                </ListItemIcon>
+                <ListItemText primary="Add Family" />
+              </ListItem>
+            </List>
+          </Collapse>
+        </>
+      }
+    </AlbumContext.Consumer>
+  );
+};
+
+// const AlbumContext = { classes, createAlbum, deleteAlbum, addMember, removeMember };
+const Albums = ({ albums }) => {
+  return (
+    <AlbumContext.Consumer>
+      { context =>
+        <List
+          component="nav"
+          subheader={<ListSubheader component="div">Albums</ListSubheader>}
+          className={context.classes.root}
+        >
+          { albums.map(album => <AlbumItem album={album} />) }
+          <ListItem>
+            <ListItemIcon>
+              <IconButton aria-label="Create" onClick={() => context.createAlbum()}>
+                <AddCircle />
+              </IconButton>
+            </ListItemIcon>
+            <ListItemText primary="Create Album" />
+          </ListItem>
+        </List>
+      }
+    </AlbumContext.Consumer>
+  );
+};
+
+const AlbumControl = ({ classes }) => {
+
+  const createAlbum = () => {};
+  const deleteAlbum = () => {};
+  const addMember = () => {};
+  const removeMember = () => {};
+
+  return (
+    <AlbumContext.Provider value={{ classes, createAlbum, deleteAlbum, addMember, removeMember }}>
+      <Albums albums={[]} />
+    </AlbumContext.Provider>
+  );
+};
 
 const NestedList = ({ classes }) => {
   return (
     <div>
       <List
         component="nav"
-        subheader={<ListSubheader component="div">Menber of Album</ListSubheader>}
-        className={classes.root}
-      >
-        <ListItem>
-          <ListItemText primary="ワイ" secondary="father" />
-          <ListItemSecondaryAction>
-            <IconButton aria-label="Remove">
-              <RemoveCircle />
-            </IconButton>
-          </ListItemSecondaryAction>
-        </ListItem>
-        <ListItem>
-          <ListItemText primary="ヨッメ" secondary="mother" />
-          <ListItemSecondaryAction>
-            <IconButton aria-label="Remove">
-              <RemoveCircle />
-            </IconButton>
-          </ListItemSecondaryAction>
-        </ListItem>
-        <ListItem>
-          <ListItemText primary="オカン" secondary="grand mother" />
-          <ListItemSecondaryAction>
-            <IconButton aria-label="Remove">
-              <RemoveCircle />
-            </IconButton>
-          </ListItemSecondaryAction>
-        </ListItem>
-        <ListItem>
-          <ListItemText primary="オヤジ" secondary="grand father" />
-          <ListItemSecondaryAction>
-            <IconButton aria-label="Remove">
-              <RemoveCircle />
-            </IconButton>
-          </ListItemSecondaryAction>
-        </ListItem>
-        <ListItem>
-          <ListItemIcon>
-            <AddCircle />
-          </ListItemIcon>
-          <ListItemText primary="Add Family" />
-        </ListItem>
-      </List>
-      <Divider variant="middle" style={{ marginBottom: '30px' }}/>
-      <List
-        component="nav"
-        subheader={<ListSubheader component="div">Albums you join in</ListSubheader>}
+        subheader={<ListSubheader component="div">Albums</ListSubheader>}
         className={classes.root}
       >
         <ListItem>
@@ -294,6 +345,48 @@ const NestedList = ({ classes }) => {
             </IconButton>
           </ListItemSecondaryAction>
         </ListItem>
+        <Collapse in={true} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding className={classes.nested}>
+            <ListItem>
+              <ListItemText primary="ワイ" secondary="father" />
+              <ListItemSecondaryAction>
+                <IconButton aria-label="Remove">
+                  <RemoveCircle />
+                </IconButton>
+              </ListItemSecondaryAction>
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="ヨッメ" secondary="mother" />
+              <ListItemSecondaryAction>
+                <IconButton aria-label="Remove">
+                  <RemoveCircle />
+                </IconButton>
+              </ListItemSecondaryAction>
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="オカン" secondary="grand mother" />
+              <ListItemSecondaryAction>
+                <IconButton aria-label="Remove">
+                  <RemoveCircle />
+                </IconButton>
+              </ListItemSecondaryAction>
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="オヤジ" secondary="grand father" />
+              <ListItemSecondaryAction>
+                <IconButton aria-label="Remove">
+                  <RemoveCircle />
+                </IconButton>
+              </ListItemSecondaryAction>
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <AddCircle />
+              </ListItemIcon>
+              <ListItemText primary="Add Family" />
+            </ListItem>
+          </List>
+        </Collapse>
         <ListItem>
           <ListItemIcon>
             <AddCircle />
@@ -302,9 +395,11 @@ const NestedList = ({ classes }) => {
         </ListItem>
       </List>
       <Divider variant="middle" style={{ marginBottom: '30px' }}/>
+      <AlbumControl classes={classes} />
+      <Divider variant="middle" style={{ marginBottom: '30px' }}/>
       <List
         component="nav"
-        subheader={<ListSubheader component="div">Your Profile</ListSubheader>}
+        subheader={<ListSubheader component="div">Profile</ListSubheader>}
         className={classes.root}
       >
         <ListItem>
