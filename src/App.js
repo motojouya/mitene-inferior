@@ -1,6 +1,6 @@
 // import React, { Component } from 'react';
 import React, { useState } from 'react';
-import Amplify from 'aws-amplify';
+import Amplify, { API } from 'aws-amplify';
 // import { Authenticator } from 'aws-amplify-react';
 import { withAuthenticator, S3Album } from 'aws-amplify-react';
 
@@ -38,6 +38,14 @@ import ExpandLess from '@material-ui/icons/ExpandLess';
 import ExpandMore from '@material-ui/icons/ExpandMore';
 import StarBorder from '@material-ui/icons/StarBorder';
 
+import Button from '@material-ui/core/Button';
+import TextField from '@material-ui/core/TextField';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+
 
 
 Amplify.configure({
@@ -53,6 +61,16 @@ Amplify.configure({
       region: 'ap-northeast-1',
     }
   },
+  API: {
+    endpoints: [
+      {
+        name: 'APIGatewayMiteneAlbum',
+        endpoint: 'https://jypo1jbakl.execute-api.ap-northeast-1.amazonaws.com/test',
+      },
+    ]
+  }
+
+
 });
 
 // const AppWithAuth = () => <Authenticator />;
@@ -290,7 +308,6 @@ const AlbumItem = ({ album: { basic: { albumId, albumName }, members } }) => {
   );
 };
 
-// const AlbumContext = { classes, createAlbum, deleteAlbum, addMember, removeMember };
 const Albums = ({ albums }) => {
   return (
     <AlbumContext.Consumer>
@@ -315,12 +332,27 @@ const Albums = ({ albums }) => {
   );
 };
 
-const AlbumControl = ({ classes }) => {
+const createAlbum = (albumName, relative) => {
+  const requestBody = {
+    body: {
+      albumName,
+      relative,
+    }
+  };
 
-  const createAlbum = () => {};
-  const deleteAlbum = () => {};
-  const addMember = () => {};
-  const removeMember = () => {};
+  API.post('APIGatewayMiteneAlbum', '', requestBody).then(response => {
+
+  }).catch(error => {
+    console.log(error.response)
+  });
+
+};
+const deleteAlbum = () => {};
+const addMember = () => {};
+const removeMember = () => {};
+
+
+const AlbumControl = ({ classes }) => {
 
   return (
     <AlbumContext.Provider value={{ classes, createAlbum, deleteAlbum, addMember, removeMember }}>
@@ -440,6 +472,47 @@ NestedList.propTypes = {
 
 const Nest = withStyles(listStyles)(NestedList);
 
+
+
+const FormDialog = () => {
+  const [isOpen, changeOpen] = React.useState(false);
+  return (
+    <div>
+      <Button variant="outlined" color="primary" onClick={() => changeOpen(true)}>
+        Open form dialog
+      </Button>
+      <Dialog
+        open={isOpen}
+        onClose={() => changeOpen(false)}
+        aria-labelledby="form-dialog-title"
+      >
+        <DialogTitle id="form-dialog-title">Subscribe</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            To subscribe to this website, please enter your email address here. We will send
+            updates occasionally.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="name"
+            label="Email Address"
+            type="email"
+            fullWidth
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => changeOpen(false)} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={() => changeOpen(false)} color="primary">
+            Subscribe
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </div>
+  );
+}
 
 
 

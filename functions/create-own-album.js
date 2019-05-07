@@ -1,5 +1,4 @@
 const AWS = require('aws-sdk');
-const sjcl = require('sjcl');
 const uuid = require('uuid');
 
 AWS.config.update({region: 'ap-northeast-1'});
@@ -53,7 +52,7 @@ exports.handler = (event, context, callback) => {
           PutRequest: {
             Item: {
               album_id: albumId,
-              album_property: 'basic'
+              album_property: 'basic',
               album_name: albumName,
             }
           }
@@ -62,7 +61,7 @@ exports.handler = (event, context, callback) => {
           PutRequest: {
             Item: {
               album_id: albumId,
-              album_property: `user#${cognitoUsername}`
+              album_property: `user#${cognitoUsername}`,
               user_name: cognitoName,
               relative: relative,
               owner: true,
@@ -74,7 +73,7 @@ exports.handler = (event, context, callback) => {
     ReturnConsumedCapacity: "TOTAL"
   }
 
-  cognito.adminUpdateUserAttributes(params, (err, res) => {
+  cognito.adminUpdateUserAttributes(cognitoParam, (err, res) => {
     if (err) {
       callback(err);
       return;
