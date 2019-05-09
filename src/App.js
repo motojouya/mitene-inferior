@@ -46,6 +46,12 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 
+import FormControl from '@material-ui/core/FormControl';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import InputLabel from '@material-ui/core/InputLabel';
+import MenuItem from '@material-ui/core/MenuItem';
+import Select from '@material-ui/core/Select';
+import Switch from '@material-ui/core/Switch';
 
 
 Amplify.configure({
@@ -167,6 +173,19 @@ const headerStyles = theme => ({
       display: 'none',
     },
   },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    margin: 'auto',
+    width: 'fit-content',
+  },
+  formControl: {
+    marginTop: theme.spacing.unit * 2,
+    minWidth: 120,
+  },
+  formControlLabel: {
+    marginTop: theme.spacing.unit,
+  },
 });
 
 const PrimarySearchAppBar = ({ classes }) => {
@@ -207,30 +226,6 @@ const HeaderBar = ({ classes, showConfig }) => {
         </IconButton>
       </Toolbar>
     </AppBar>
-  );
-};
-
-const Configs = () => {
-  return (
-    <div>
-
-- album
-  - father RemoveCircle
-  - mother RemoveCircle
-  - grand father RemoveCircle
-  - grand mother RemoveCircle
-  - .. RemoveCircle
-  - add family AddCircle
-- change album
-  - .. DeleteForever
-  - .. DeleteForever
-  - make album Create
-- indivisuals
-  - name Edit
-  - email Edit
-  - password Edit
-  - logout
-    </div>
   );
 };
 
@@ -362,6 +357,14 @@ const AlbumControl = ({ classes }) => {
 };
 
 const NestedList = ({ classes }) => {
+
+  const [activeCreateAlbum, changeActiveCreateAlbum] = React.useState(false);
+  const [relative, changeRelative] = React.useState('');
+  const [albumName, changeAlbumName] = React.useState('');
+
+  const handleChangeRelative = e => changeRelative(e.target.value);
+  const handleChangeAlbumName = e => changeAlbumName(e.target.value);
+
   return (
     <div>
       <List
@@ -421,7 +424,9 @@ const NestedList = ({ classes }) => {
         </Collapse>
         <ListItem>
           <ListItemIcon>
-            <AddCircle />
+            <IconButton onClick={() => changeActiveCreateAlbum(true)}>
+              <AddCircle />
+            </IconButton>
           </ListItemIcon>
           <ListItemText primary="Create Album" />
         </ListItem>
@@ -462,6 +467,54 @@ const NestedList = ({ classes }) => {
           <ListItemText primary="Sign Out" />
         </ListItem>
       </List>
+      <Dialog
+        open={activeCreateAlbum}
+        onClose={() => changeActiveCreateAlbum(false)}
+        aria-labelledby="form-dialog-title"
+      >
+        <DialogTitle id="form-dialog-title">Subscribe</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            アルバムの名前とあなたの立場を入力してください
+          </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="name"
+            label="Email Address"
+            type="email"
+            fullWidth
+            onChange={handleChangeAlbumName}
+          />
+          <form className={classes.form} noValidate>
+            <FormControl className={classes.formControl}>
+              <InputLabel htmlFor="max-width">maxWidth</InputLabel>
+              <Select
+                value="father"
+                onChange={handleChangeRelative}
+                inputProps={{
+                  name: 'max-width',
+                  id: 'max-width',
+                }}
+              >
+                <MenuItem value="father">father</MenuItem>
+                <MenuItem value="mother">mother</MenuItem>
+                <MenuItem value="grand father">grand father</MenuItem>
+                <MenuItem value="grand mother">grand mother</MenuItem>
+                <MenuItem value="other">other</MenuItem>
+              </Select>
+            </FormControl>
+          </form>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => changeActiveCreateAlbum(false)} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={() => changeActiveCreateAlbum(false)} color="primary">
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
