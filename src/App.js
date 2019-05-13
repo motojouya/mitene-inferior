@@ -72,6 +72,7 @@ Amplify.configure({
       {
         name: 'APIGatewayMiteneAlbum',
         endpoint: 'https://jypo1jbakl.execute-api.ap-northeast-1.amazonaws.com/test',
+        region: 'ap-northeast-1',
       },
     ]
   }
