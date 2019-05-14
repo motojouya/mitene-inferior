@@ -1,6 +1,6 @@
 // import React, { Component } from 'react';
 import React, { useState } from 'react';
-import Amplify, { API } from 'aws-amplify';
+import Amplify, { API, Auth } from 'aws-amplify';
 // import { Authenticator } from 'aws-amplify-react';
 import { withAuthenticator, S3Album } from 'aws-amplify-react';
 
@@ -328,21 +328,31 @@ const Albums = ({ albums }) => {
   );
 };
 
-const createAlbum = (albumName, relative) => {
-  const requestBody = {
-    body: {
-      albumName,
-      relative,
-    }
-  };
+const createAlbum = async (albumName, relative) => {
 
-  API.post('APIGatewayMiteneAlbum', '', requestBody).then(res => {
+  try {
+    const userSession = await Auth.currentSession();
+    const idToken = userSession.getIdToken().getJwtToken();
+    console.log(idToken);
+
+    const requestBody = {
+      headers: {
+        Authorization: idToken,
+      },
+      body: {
+        albumName,
+        relative,
+      }
+    };
+
+    const res = await API.post('APIGatewayMiteneAlbum', '', requestBody);
     console.log(res);
-  }).catch(err => {
-    console.log(err.response)
-  });
 
+  } catch (e) {
+    console.log(e);
+  }
 };
+
 const deleteAlbum = () => {};
 const addMember = () => {};
 const removeMember = () => {};

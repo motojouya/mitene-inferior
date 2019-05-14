@@ -1,5 +1,5 @@
 const AWS = require('aws-sdk');
-const uuid = require('uuid');
+const uuid = require('uuid/v4');
 
 AWS.config.update({region: 'ap-northeast-1'});
 
@@ -8,11 +8,15 @@ exports.handler = (event, context, callback) => {
   console.log(event);
 
   const claims = event.requestContext.authorizer.claims;
+  console.log(claims);
   const albumOwn = claims['custom:album-own'];
-  const cognitoUsername = claims.username;
+  const cognitoUsername = claims['cognito:username'];
   const cognitoName = claims.name;
-  const albumName = event.albumName;
-  const relative = event.relative
+  const requestBody = JSON.parse(event.body);
+  const albumName = requestBody.albumName;
+  const relative = requestBody.relative
+
+  console.log('got parameters.');
 
   if (!cognitoUsername) {
     callback({errorMessage: 'You need sign in.'});
@@ -88,6 +92,4 @@ exports.handler = (event, context, callback) => {
   });
 
 };
-
-
 
