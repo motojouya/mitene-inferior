@@ -1,8 +1,31 @@
 // import React, { Component } from 'react';
 import React, { useState } from 'react';
-import Amplify, { API, Auth } from 'aws-amplify';
+import Amplify, { API, Auth, I18n } from 'aws-amplify';
 // import { Authenticator } from 'aws-amplify-react';
-import { withAuthenticator, S3Album } from 'aws-amplify-react';
+import {
+  withAuthenticator,
+  S3Album,
+  FormSection,
+  SectionHeader,
+  SectionBody,
+  SectionFooter,
+  FormField,
+  Input,
+  InputLabel as AmplifyInputLabel,
+  SelectInput,
+  Button as AmplifyButton,
+  InputRow,
+  ButtonRow,
+  Link,
+  SectionFooterPrimaryContent,
+  SectionFooterSecondaryContent,
+  SignUp,
+  ConfirmSignIn,
+  ConfirmSignUp,
+  ForgotPassword,
+  SignIn,
+  VerifyContact,
+} from 'aws-amplify-react';
 
 import PropTypes from 'prop-types';
 import AppBar from '@material-ui/core/AppBar';
@@ -56,10 +79,10 @@ import Switch from '@material-ui/core/Switch';
 
 Amplify.configure({
   Auth: {
-    identityPoolId: 'ap-northeast-1:c6f2c8dd-2c9a-4fb6-b5c2-653c5aee9401',
+    identityPoolId: 'ap-northeast-1:1c787fbc-6cf3-41e5-84c0-944ded489bef',
     region: 'ap-northeast-1',
-    userPoolId: 'ap-northeast-1_9TnIBH7mj',
-    userPoolWebClientId: '4megifsql6rfeje1n1b35f01h5',
+    userPoolId: 'ap-northeast-1_nXzG3qeZX',
+    userPoolWebClientId: '132vh81i525sefdskttppjov7v',
   },
   Storage: {
     AWSS3: {
@@ -479,7 +502,7 @@ const NestedList = ({ classes }) => {
           </ListItemSecondaryAction>
         </ListItem>
         <ListItem>
-          <ListItemText primary="Sign Out" />
+          <ListItemText primary="Sign Out" onClick={() => Auth.signOut()}/>
         </ListItem>
       </List>
     </div>
@@ -598,7 +621,189 @@ const FormDialog = () => {
   );
 }
 
+class MiteneSignUp extends SignUp {
+  showComponent(theme) {
+    //const { hide } = this.props
+    //if (hide && hide.includes(SignUp)) {
+    //  return null
+    //}
+    console.log(theme);
+
+    return (
+      <FormSection theme={theme}>
+        <SectionHeader theme={theme}>{I18n.get("Sign Up Account")}</SectionHeader>
+        <SectionBody theme={theme}>
+          <InputRow
+            autoFocus={true}
+            placeholder={I18n.get("Username")}
+            theme={theme}
+            key="username"
+            name="username"
+            onChange={this.handleInputChange}
+          />
+          <InputRow
+            placeholder={I18n.get("Password")}
+            theme={theme}
+            type="password"
+            key="password"
+            name="password"
+            onChange={this.handleInputChange}
+          />
+          <InputRow
+            placeholder={I18n.get("Email")}
+            theme={theme}
+            key="email"
+            name="email"
+            onChange={this.handleInputChange}
+          />
+          {/*<InputRow
+            placeholder={I18n.get('Phone Number')}
+            theme={theme}
+            key="phone_number"
+            name="phone_number"
+            onChange={this.handleInputChange}
+          />*/}
+          <ButtonRow onClick={this.signUp} theme={theme}>
+            {I18n.get("Sign Up")}
+          </ButtonRow>
+        </SectionBody>
+        <SectionFooter theme={theme}>
+          <div style={theme.col6}>
+            <Link theme={theme} onClick={() => this.changeState("confirmSignUp")}>
+              {I18n.get("Confirm a Code")}
+            </Link>
+          </div>
+          <div style={Object.assign({ textAlign: "right" }, theme.col6)}>
+            <Link theme={theme} onClick={() => this.changeState("signIn")}>
+              {I18n.get("Sign In")}
+            </Link>
+          </div>
+        </SectionFooter>
+      </FormSection>
+    )
+  }
+
+  async signUp() {
+    const { username, password, email /*, phone_number */ } = this.inputs
+    try {
+      await Auth.signUp({
+        attributes: {
+          email,
+          // phone_number,
+        },
+        password,
+        username,
+      })
+      this.changeState("confirmSignUp", username)
+    } catch (err) {
+      this.error(err)
+    }
+  }
+}
 
 
-export default withAuthenticator(withStyles(headerStyles)(PrimarySearchAppBar));
+// class MiteneSignUp extends SignUp {
+// 
+//     signUp() {
+//         if (!this.inputs.dial_code) {
+//             this.inputs.dial_code = this.getDefaultDialCode();
+//         }
+//         const validation = this.validate();
+//         if (validation && validation.length > 0) {
+//           return this.error(`The following fields need to be filled out: ${validation.join(', ')}`);
+//         }
+//         if (!Auth || typeof Auth.signUp !== 'function') {
+//             throw new Error('No Auth module found, please ensure @aws-amplify/auth is imported');
+//         }
+// 
+//         let signup_info = {
+//             username: this.inputs.username,
+//             password: this.inputs.password,
+//             attributes: {
+// 
+//             }
+//         };
+// 
+//         const inputKeys = Object.keys(this.inputs);
+//         const inputVals = Object.values(this.inputs);
+// 
+//         inputKeys.forEach((key, index) => {
+//             if (!['username', 'password', 'checkedValue', 'dial_code'].includes(key)) {
+//               if (key !== 'phone_line_number' && key !== 'dial_code' && key !== 'error') {
+//                 const newKey = `${this.needPrefix(key) ? 'custom:' : ''}${key}`;
+//                 signup_info.attributes[newKey] = inputVals[index];
+//               } else if (inputVals[index]) {
+//                   signup_info.attributes['phone_number'] = `${this.inputs.dial_code}${this.inputs.phone_line_number.replace(/[-()]/g, '')}`
+//               }
+//             }
+//         });
+// 
+//         Auth.signUp(signup_info).then((data) => {
+//             this.changeState('confirmSignUp', data.user.username)
+//         })
+//         .catch(err => this.error(err));
+//     }
+// 
+//     showComponent(theme) {
+//         const { hide } = this.props;
+//         if (hide && hide.includes(SignUp)) { return null; }
+//         if (this.checkCustomSignUpFields()) {
+//             this.signUpFields = this.props.signUpConfig.signUpFields;
+//         }
+//         this.sortFields();
+//         return (
+//             <FormSection theme={theme} >
+//                 <SectionHeader theme={theme} >{I18n.get(this.header)}</SectionHeader>
+//                 <SectionBody theme={theme} >
+//                     {
+//                         this.signUpFields.map((field) => {
+//                             return (
+//                                 <FormField theme={theme} key={field.key}>
+//                                 {
+//                                     field.required ? 
+//                                     <AmplifyInputLabel theme={theme}>{I18n.get(field.label)} *</AmplifyInputLabel> :
+//                                     <AmplifyInputLabel theme={theme}>{I18n.get(field.label)}</AmplifyInputLabel>
+//                                 }
+//                                     <Input
+//                                         autoFocus={this.signUpFields.findIndex(f => f.key === field.key) === 0 ? true : false}
+//                                         placeholder={I18n.get(field.placeholder)}
+//                                         theme={theme}
+//                                         type={field.type}
+//                                         name={field.key}
+//                                         key={field.key}
+//                                         onChange={this.handleInputChange}
+//                                     />
+//                                 </FormField>
+//                             )
+//                         })
+//                     }
+//                 </SectionBody>
+//                 <SectionFooter theme={theme} >
+//                     <SectionFooterPrimaryContent theme={theme}>
+//                         <AmplifyButton onClick={this.signUp} theme={theme} >
+//                             {I18n.get('Create Account')}
+//                         </AmplifyButton>
+//                     </SectionFooterPrimaryContent>
+//                     <SectionFooterSecondaryContent theme={theme}>
+//                         {I18n.get('Have an account? ')}
+//                         <Link theme={theme} onClick={() => this.changeState('signIn')} >
+//                             {I18n.get('Sign in')}
+//                         </Link>
+//                     </SectionFooterSecondaryContent>
+//                 </SectionFooter>
+//             </FormSection>
+//         );
+//     }
+// 
+// }
+
+// export default withAuthenticator(withStyles(headerStyles)(PrimarySearchAppBar));
+export default withAuthenticator(withStyles(headerStyles)(PrimarySearchAppBar), true, [
+  <SignIn />,
+  <ConfirmSignIn />,
+  <VerifyContact />,
+  <MiteneSignUp override="SignUp" />,
+  <ConfirmSignUp />,
+  <ForgotPassword />,
+]);
 
