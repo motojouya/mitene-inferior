@@ -25,6 +25,7 @@ import {
   ForgotPassword,
   SignIn,
   VerifyContact,
+  AmplifyTheme,
 } from 'aws-amplify-react';
 
 import PropTypes from 'prop-types';
@@ -76,6 +77,7 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
 import Switch from '@material-ui/core/Switch';
 
+import uuid from 'uuid/v4';
 
 Amplify.configure({
   Auth: {
@@ -634,11 +636,17 @@ class MiteneSignUp extends SignUp {
         <SectionHeader theme={theme}>{I18n.get("Sign Up Account")}</SectionHeader>
         <SectionBody theme={theme}>
           <InputRow
-            autoFocus={true}
-            placeholder={I18n.get("Username")}
+            placeholder={I18n.get("Nickname")}
             theme={theme}
-            key="username"
-            name="username"
+            key="name"
+            name="name"
+            onChange={this.handleInputChange}
+          />
+          <InputRow
+            placeholder={I18n.get("Email")}
+            theme={theme}
+            key="email"
+            name="email"
             onChange={this.handleInputChange}
           />
           <InputRow
@@ -647,13 +655,6 @@ class MiteneSignUp extends SignUp {
             type="password"
             key="password"
             name="password"
-            onChange={this.handleInputChange}
-          />
-          <InputRow
-            placeholder={I18n.get("Email")}
-            theme={theme}
-            key="email"
-            name="email"
             onChange={this.handleInputChange}
           />
           {/*<InputRow
@@ -684,15 +685,17 @@ class MiteneSignUp extends SignUp {
   }
 
   async signUp() {
-    const { username, password, email /*, phone_number */ } = this.inputs
+    const { email, password, name } = this.inputs
+    //const username = `${uuid()}@${email}`;
+    const username = email;
     try {
       await Auth.signUp({
         attributes: {
           email,
-          // phone_number,
+          name,
         },
-        password,
         username,
+        password,
       })
       this.changeState("confirmSignUp", username)
     } catch (err) {
@@ -805,5 +808,5 @@ export default withAuthenticator(withStyles(headerStyles)(PrimarySearchAppBar), 
   <MiteneSignUp override="SignUp" />,
   <ConfirmSignUp />,
   <ForgotPassword />,
-]);
+], null, AmplifyTheme);
 
