@@ -9,7 +9,7 @@ exports.handler = (event, context, callback) => {
 
   const claims = event.requestContext.authorizer.claims;
   console.log(claims);
-  const albumOwn = claims['custom:album-own'];
+  const albumOwn = claims['custom:album_own'];
   const cognitoUsername = claims['cognito:username'];
   const cognitoName = claims.name;
   const requestBody = JSON.parse(event.body);
@@ -23,7 +23,7 @@ exports.handler = (event, context, callback) => {
     return;
   }
 
-  if (albumOwn) {
+  if (albumOwn && albumOwn.length > 1) {
     callback(null, {warning: 'You have already your own album.'});
     return;
   }
@@ -41,7 +41,7 @@ exports.handler = (event, context, callback) => {
   const cognitoParam = {
     UserAttributes: [
       {
-        Name: 'custom:album-own',
+        Name: 'custom:album_own',
         Value: albumId,
       },
     ],
@@ -51,7 +51,7 @@ exports.handler = (event, context, callback) => {
 
   const dynamodbParam = {
     RequestItems: {
-      "mitene-inferior": [
+      "mitene-inferior2": [
         {
           PutRequest: {
             Item: {
@@ -82,7 +82,7 @@ exports.handler = (event, context, callback) => {
       callback(err);
       return;
     }
-    dynamodb.batchWriteItem(dynamodbParam, (err, res) => {
+    dynamodb.batchWrite(dynamodbParam, (err, res) => {
       if (err) {
         callback(err);
         return;
