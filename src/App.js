@@ -373,6 +373,9 @@ const createAlbum = async (albumName, relative) => {
     const res = await API.post('APIGatewayMiteneAlbum', '', requestBody);
     console.log(res);
 
+    // refresh id token for update user attribute
+    Auth.currentUserPoolUser({ bypassCache: true });
+
   } catch (e) {
     console.log(e);
   }
