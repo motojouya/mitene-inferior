@@ -35,6 +35,8 @@ import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
 import { fade } from '@material-ui/core/styles/colorManipulator';
 import { withStyles } from '@material-ui/core/styles';
+import Snackbar from '@material-ui/core/Snackbar';
+import Slide from '@material-ui/core/Slide';
 import MenuIcon from '@material-ui/icons/Menu';
 
 import Settings from '@material-ui/icons/Settings';
@@ -215,12 +217,28 @@ const headerStyles = theme => ({
 });
 
 const PrimarySearchAppBar = ({ classes }) => {
+
+  Auth.currentUserPoolUser({ bypassCache: true });
+
   const [config, showConfig] = useState(true);
+  const [snakbar, showSnakbar] = useState(true);
+  const [snackbarMessage, changeSnackbarMessage] = useState('');
+
   return (
     <div className={classes.root}>
       <HeaderBar classes={classes} showConfig={showConfig} />
       {!config && <S3Album path="" picker />}
       {config && <Nest />}
+      <Snackbar
+        anchorOrigin={{ vertical: 'top', horizontal: 'center', }}
+        open={snakbar}
+        ContentProps={{
+          'aria-describedby': 'message-id',
+        }}
+        TransitionComponent={<Slide direction="down"/>}
+        autoHideDuration={3000}
+        message={<span id="message-id">{snackbarMessage}</span>}
+      />
     </div>
   );
 }
@@ -258,8 +276,6 @@ const HeaderBar = ({ classes, showConfig }) => {
 PrimarySearchAppBar.propTypes = {
   classes: PropTypes.object.isRequired,
 };
-
-
 
 const listStyles = theme => ({
   root: {
@@ -376,13 +392,18 @@ const createAlbum = async (albumName, relative) => {
     // refresh id token for update user attribute
     Auth.currentUserPoolUser({ bypassCache: true });
 
+    //TODO toastだしたほうがいいかな
+
   } catch (e) {
     console.log(e);
   }
 };
 
 const deleteAlbum = () => {};
-const addMember = () => {};
+
+const addMember = async () => {
+};
+
 const removeMember = () => {};
 
 
