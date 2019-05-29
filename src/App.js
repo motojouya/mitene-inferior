@@ -216,30 +216,53 @@ const headerStyles = theme => ({
   },
 });
 
+const SnackBarWrap = ({ render }) => {
+
+  const [open, changeOpen] = useState(false);
+  const [message, changeMessage] = useState('');
+
+  const handleClick = messageProp => {
+    changeMessage(messageProp);
+    changeOpen(true);
+  };
+
+  const handleClose = () => {
+    changeMessage('');
+    changeOpen(false);
+  };
+
+  const SnackbarComponent = () => (
+    <Snackbar
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'left', }}
+      open={open}
+      onClose={handleClose}
+      autoHideDuration={3000}
+      ContentProps={{
+        'aria-describedby': 'message-id',
+      }}
+      TransitionComponent={props => <Slide {...props} direction="left" />}
+      message={<span id="message-id">{message}</span>}
+    />
+  );
+
+  return <>{render(handleClick, SnackbarComponent)}</>;
+};
+
 const PrimarySearchAppBar = ({ classes }) => {
 
   Auth.currentUserPoolUser({ bypassCache: true });
 
   const [config, showConfig] = useState(true);
-  const [snakbar, showSnakbar] = useState(true);
-  const [snackbarMessage, changeSnackbarMessage] = useState('');
 
   return (
-    <div className={classes.root}>
-      <HeaderBar classes={classes} showConfig={showConfig} />
-      {!config && <S3Album path="" picker />}
-      {config && <Nest />}
-      <Snackbar
-        anchorOrigin={{ vertical: 'top', horizontal: 'center', }}
-        open={snakbar}
-        ContentProps={{
-          'aria-describedby': 'message-id',
-        }}
-        TransitionComponent={<Slide direction="down"/>}
-        autoHideDuration={3000}
-        message={<span id="message-id">{snackbarMessage}</span>}
-      />
-    </div>
+    <SnackBarWrap render={(showSnackbar, SnackBarComponent) => (
+      <div className={classes.root}>
+        <HeaderBar classes={classes} showConfig={showConfig} />
+        {!config && <S3Album path="" picker />}
+        {config && <Nest showSnackbar={showSnackbar} />}
+        <SnackBarComponent />
+      </div>
+    )}/>
   );
 }
 
@@ -369,7 +392,7 @@ const Albums = ({ albums }) => {
   );
 };
 
-const createAlbum = async (albumName, relative) => {
+const createAlbum = afterCallback => async (albumName, relative) => {
 
   try {
     const userSession = await Auth.currentSession();
@@ -391,8 +414,7 @@ const createAlbum = async (albumName, relative) => {
 
     // refresh id token for update user attribute
     Auth.currentUserPoolUser({ bypassCache: true });
-
-    //TODO toastだしたほうがいいかな
+    afterCallback({ message: `Album ${albumName} を作成しました！` });
 
   } catch (e) {
     console.log(e);
@@ -416,7 +438,7 @@ const AlbumControl = ({ classes, createAlbum }) => {
   );
 };
 
-const NestedList = ({ classes }) => {
+const NestedList = ({ classes, showSnackbar }) => {
 
   const [activeCreateAlbum, changeActiveCreateAlbum] = React.useState(false);
 
@@ -495,7 +517,7 @@ const NestedList = ({ classes }) => {
         classes={classes}
         isOpen={activeCreateAlbum}
         changeOpen={changeActiveCreateAlbum}
-        submitCreateAlbum={createAlbum}
+        submitCreateAlbum={createAlbum(showSnackbar)}
       />
       <Divider variant="middle" style={{ marginBottom: '30px' }}/>
       <List
