@@ -40,21 +40,7 @@ exports.handler = (event, context, callback) => {
     return;
   }
 
-  const cognito = new AWS.CognitoIdentityServiceProvider();
-  const dynamodb = new AWS.DynamoDB.DocumentClient();
-
   const albumId = uuid();
-
-  const cognitoParam = {
-    UserAttributes: [
-      {
-        Name: 'custom:album_own',
-        Value: albumId,
-      },
-    ],
-    UserPoolId: process.env.COGNITO_USER_POOL_ID,
-    Username: cognitoUsername,
-  };
 
   const dynamodbParam = {
     RequestItems: {
@@ -76,6 +62,7 @@ exports.handler = (event, context, callback) => {
               user_name: cognitoName,
               relative: relative,
               owner: true,
+              status: 'pending',
             }
           }
         },
@@ -84,24 +71,18 @@ exports.handler = (event, context, callback) => {
     ReturnConsumedCapacity: "TOTAL"
   };
 
-  cognito.adminUpdateUserAttributes(cognitoParam, (err, res) => {
+  new AWS.DynamoDB.DocumentClient().batchWrite(dynamodbParam, (err, res) => {
     if (err) {
       responseError(callback, err);
       return;
     }
-    dynamodb.batchWrite(dynamodbParam, (err, res) => {
-      if (err) {
-        responseError(callback, err);
-        return;
-      }
-      callback(null, {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*"
-        },
-        body: JSON.stringify({ message: 'success!' }),
-        isBase64Encoded: false
-      });
+    callback(null, {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*"
+      },
+      body: JSON.stringify({ message: 'success!' }),
+      isBase64Encoded: false
     });
   });
 
