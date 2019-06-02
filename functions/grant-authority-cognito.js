@@ -1,52 +1,57 @@
 const AWS = require('aws-sdk');
-const uuid = require('uuid/v4');
 
 AWS.config.update({region: 'ap-northeast-1'});
 
-exports.handler = (event, context, callback) => {
-  const cognito = new AWS.CognitoIdentityServiceProvider();
-  const proceedFunc = grantAuthorityToCognito(cognito);
+const ALBUM_USER_ATTRIBUTES_PREFIX = 'custom:album';
+const ALBUM_OWN_USER_ATTRIBUTES = `${ALBUM_USER_ATTRIBUTES_PREFIX}_own`;
+const ALBUM_USER_ATTRIBUTES = Array(10).fill().map((_, i) => `${ALBUM_USER_ATTRIBUTES_PREFIX}${i}`);
 
-  // all じゃなくて raceにする いや全部okか一部か失敗かする
-  Promise.all(
-    event.Records
-      .filter(record => record.eventName === 'INSERT')
-      .map(record => {
-        const item = record.dynamodb.NewImage;
+const getEmptyAlbumIdPlaceholder = (isOwner, userAttributes) => {
 
-        const albumproperty = item.S.album_property;
-        const albumpropertySplitted = albumproperty.split('#');
-        if (albumpropertySplitted[0] !== 'user') {
-          return null;
-        }
-        const cognitoUsername = albumpropertySplitted[1];
-        const albumId = item.S.album_id;
-        return proceedFunc(cognitoUsername, albumId);
+  if (isOwner) {
+    const hasAlbumOwnIdAttributes = userAttributes
+      .map(attribute => attribute.Name);
+      .includes(ALBUM_OWN_USER_ATTRIBUTES)
+    return !hasAlbumOwnIdAttributes ? ALBUM_OWN_USER_ATTRIBUTES : null;
 
-      })
-      .filter(promise => promise !== null)
-  ).then(result => {
-    callback(null, { message: 'success!' });
-  });
+  } else {
+    const albumIdAttributes = res.UserAttributes
+      .filter(attribute => attribute.Name.startWith(ALBUM_USER_ATTRIBUTES_PREFIX))
+      .map(attribute => attribute.Name);
+    return ALBUM_USER_ATTRIBUTES.first(attribute => !albumAttributes.includes(attribute));
+  }
 };
 
-const grantAuthorityToCognito = cognitoClient => (cognitoUsername, albumId) => {
+exports.handler = (event, context, callback) => {
 
-  return new Promise((resolve, reject) => {
+  const { cognitoUsername, albumId, isOwner } = event;
 
-    if (!cognitoUsername || !albumId) {
-      reject({ error: 'there is no cognito user name or album id.' });
+  const cognito = new AWS.CognitoIdentityServiceProvider();
+
+  if (!cognitoUsername || !albumId) {
+    callback({ error: 'There is no cognito user name or album id.' });
+    return;
+  }
+
+  cognitoClient.adminGetUser({
+    UserPoolId: process.env.COGNITO_USER_POOL_ID,
+    Username: cognitoUsername,
+  }, (err, res) => {
+    if (err) {
+      callback(err);
       return;
     }
 
-    //TODO ここでユーザがいるかどうか確認する必要ある
-    // いたら権限移譲、なければ権限つけてユーザ作成
-    // それか、ユーザがいるかどうかは一気にとれる？
+    const albumIdPlaceholder = getEmptyAlbumIdPlaceholder(isOwner, res.UserAttributes);
+    if (albumIdPlaceholder) {
+      callback({ error: 'No more album id placeholder.' });
+      return;
+    }
 
     const cognitoParam = {
       UserAttributes: [
         {
-          Name: 'custom:album_own',
+          Name: albumIdPlaceholder,
           Value: albumId,
         },
       ],
@@ -54,13 +59,13 @@ const grantAuthorityToCognito = cognitoClient => (cognitoUsername, albumId) => {
       Username: cognitoUsername,
     };
 
-    cognito.adminUpdateUserAttributes(cognitoParam, (err, res) => {
+    cognitoClient.adminUpdateUserAttributes(cognitoParam, (err, res) => {
       if (err) {
-        reject(err);
+        callback(err);
         return;
       }
-      resolve({ message: 'success!' });
+      callback(null, { message: 'success!' });
     });
-  });
+  })
 };
 
