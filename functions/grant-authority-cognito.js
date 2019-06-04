@@ -10,20 +10,21 @@ const getEmptyAlbumIdPlaceholder = (isOwner, userAttributes) => {
 
   if (isOwner) {
     const hasAlbumOwnIdAttributes = userAttributes
-      .map(attribute => attribute.Name);
-      .includes(ALBUM_OWN_USER_ATTRIBUTES)
+      .map(attribute => attribute.Name)
+      .includes(ALBUM_OWN_USER_ATTRIBUTES);
     return !hasAlbumOwnIdAttributes ? ALBUM_OWN_USER_ATTRIBUTES : null;
 
   } else {
-    const albumIdAttributes = res.UserAttributes
-      .filter(attribute => attribute.Name.startWith(ALBUM_USER_ATTRIBUTES_PREFIX))
+    const albumIdAttributes = userAttributes
+      .filter(attribute => attribute.Name.startsWith(ALBUM_USER_ATTRIBUTES_PREFIX))
       .map(attribute => attribute.Name);
-    return ALBUM_USER_ATTRIBUTES.first(attribute => !albumAttributes.includes(attribute));
+    return ALBUM_USER_ATTRIBUTES.find(attribute => !albumIdAttributes.includes(attribute));
   }
 };
 
 exports.handler = (event, context, callback) => {
 
+  console.log(event);
   const { cognitoUsername, albumId, isOwner } = event;
 
   const cognito = new AWS.CognitoIdentityServiceProvider();
@@ -33,8 +34,10 @@ exports.handler = (event, context, callback) => {
     return;
   }
 
+  const userPoolId = process.env.COGNITO_USER_POOL_ID;
+
   cognito.adminGetUser({
-    UserPoolId: process.env.COGNITO_USER_POOL_ID,
+    UserPoolId: userPoolId,
     Username: cognitoUsername,
   }, (err, res) => {
     if (err) {
@@ -55,7 +58,7 @@ exports.handler = (event, context, callback) => {
           Value: albumId,
         },
       ],
-      UserPoolId: process.env.COGNITO_USER_POOL_ID,
+      UserPoolId: userPoolId,
       Username: cognitoUsername,
     };
 
@@ -66,6 +69,6 @@ exports.handler = (event, context, callback) => {
       }
       callback(null, { message: 'success!' });
     });
-  })
+  });
 };
 

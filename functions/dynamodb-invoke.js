@@ -19,13 +19,18 @@ exports.handler = (event, context, callback) => {
       }
       const cognitoUsername = albumpropertySplitted[1];
 
-      lambda.invokeAsync({
+      const lambdaParam = {
         FunctionName: 'grant-authority-cognito',
-        Payload: {
+        InvocationType: "Event",
+        Payload: JSON.stringify({
           cognitoUsername,
           albumId: item.album_id.S,
-          isOwner: item.owner.B,
-        },
+          isOwner: item.owner.BOOL,
+        }),
+      };
+
+      lambda.invoke(lambdaParam, (err, res) => {
+        console.log(err, res);
       });
     });
 };
