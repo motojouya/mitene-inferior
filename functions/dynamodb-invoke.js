@@ -12,7 +12,7 @@ exports.handler = (event, context, callback) => {
 
       const item = record.dynamodb.NewImage;
 
-      const albumproperty = item.S.album_property;
+      const albumproperty = item.album_property.S;
       const albumpropertySplitted = albumproperty.split('#');
       if (albumpropertySplitted[0] !== 'user') {
         return null;
@@ -23,8 +23,8 @@ exports.handler = (event, context, callback) => {
         FunctionName: 'grant-authority-cognito',
         Payload: {
           cognitoUsername,
-          albumId: item.S.album_id,
-          isOwner: item.B.owner,
+          albumId: item.album_id.S,
+          isOwner: item.owner.B,
         },
       });
     });

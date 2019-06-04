@@ -222,7 +222,7 @@ const SnackBarWrap = ({ render }) => {
   const [message, changeMessage] = useState('');
 
   const handleClick = messageProp => {
-    changeMessage(messageProp);
+    changeMessage(messageProp.message);
     changeOpen(true);
   };
 
@@ -397,7 +397,6 @@ const createAlbum = afterCallback => async (albumName, relative) => {
   try {
     const userSession = await Auth.currentSession();
     const idToken = userSession.getIdToken().getJwtToken();
-    console.log(idToken);
 
     const requestBody = {
       headers: {
@@ -410,7 +409,6 @@ const createAlbum = afterCallback => async (albumName, relative) => {
     };
 
     const res = await API.post('APIGatewayMiteneAlbum', '', requestBody);
-    console.log(res);
 
     // refresh id token for update user attribute
     Auth.currentUserPoolUser({ bypassCache: true });
@@ -675,7 +673,6 @@ class MiteneSignUp extends SignUp {
     //if (hide && hide.includes(SignUp)) {
     //  return null
     //}
-    console.log(theme);
 
     return (
       <FormSection theme={theme}>

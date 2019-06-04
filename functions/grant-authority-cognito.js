@@ -33,7 +33,7 @@ exports.handler = (event, context, callback) => {
     return;
   }
 
-  cognitoClient.adminGetUser({
+  cognito.adminGetUser({
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
     Username: cognitoUsername,
   }, (err, res) => {
@@ -59,7 +59,7 @@ exports.handler = (event, context, callback) => {
       Username: cognitoUsername,
     };
 
-    cognitoClient.adminUpdateUserAttributes(cognitoParam, (err, res) => {
+    cognito.adminUpdateUserAttributes(cognitoParam, (err, res) => {
       if (err) {
         callback(err);
         return;
