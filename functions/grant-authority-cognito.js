@@ -24,7 +24,6 @@ const getEmptyAlbumIdPlaceholder = (isOwner, userAttributes) => {
 
 exports.handler = (event, context, callback) => {
 
-  console.log(event);
   const { cognitoUsername, albumId, isOwner } = event;
 
   const cognito = new AWS.CognitoIdentityServiceProvider();
@@ -46,7 +45,7 @@ exports.handler = (event, context, callback) => {
     }
 
     const albumIdPlaceholder = getEmptyAlbumIdPlaceholder(isOwner, res.UserAttributes);
-    if (albumIdPlaceholder) {
+    if (!albumIdPlaceholder) {
       callback({ error: 'No more album id placeholder.' });
       return;
     }
