@@ -422,6 +422,35 @@ const createAlbum = afterCallback => async (albumName, relative) => {
 const deleteAlbum = () => {};
 
 const addMember = async () => {
+
+  //TODO ここにCognitoUserが必要なんだけど、どうやって取得するのか
+  Auth.userAttributes();
+
+
+  try {
+    const userSession = await Auth.currentSession();
+    const idToken = userSession.getIdToken().getJwtToken();
+
+    const requestBody = {
+      headers: {
+        Authorization: idToken,
+      },
+      body: {
+        albumName,
+        relative,
+      }
+    };
+
+    const res = await API.post('APIGatewayMiteneAlbum', '', requestBody);
+
+    // refresh id token for update user attribute
+    Auth.currentUserPoolUser({ bypassCache: true });
+    afterCallback({ message: `Album ${albumName} を作成しました！` });
+
+  } catch (e) {
+    console.log(e);
+  }
+
 };
 
 const removeMember = () => {};

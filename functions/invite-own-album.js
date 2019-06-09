@@ -1,5 +1,4 @@
 const AWS = require('aws-sdk');
-const uuid = require('uuid/v4');
 
 AWS.config.update({region: 'ap-northeast-1'});
 
@@ -10,7 +9,7 @@ const responseError = (callback, messages, statusCode) => {
     headers: {
       "Access-Control-Allow-Origin": "*"
     },
-    body: JSON.stringify(message),
+    body: JSON.stringify(messages),
     isBase64Encoded: false
   });
 };
@@ -18,21 +17,18 @@ const responseError = (callback, messages, statusCode) => {
 const assignUser = (cognito, userPoolId) => email => {
   return new Promise((resolve, reject) => {
     const searchParam = {
-      UserAttributes: [
-        {
-          email: email,
-        },
-      ],
+      AttributesToGet: [ 'cognito:username' ],
+      filter: `emal = "${email}"`,
       UserPoolId: userPoolId,
     };
 
-    cognito.listUser(searchParam, (err, data) => {
+    cognito.listUsers(searchParam, (err, data) => {
       if (err) {
         reject(err);
         return;
       }
 
-      if (data.length === 0) {
+      if (data.Users.length === 0) {
         const createParam = {
           UserAttributes: [
             {
@@ -40,19 +36,24 @@ const assignUser = (cognito, userPoolId) => email => {
             },
           ],
           UserPoolId: userPoolId,
-          username: email
-          password: Math.random().toString(36).slice(-10);,
+          Username: email,
+          MessageAction: 'RESEND',
+          TemporaryPassword: Math.random().toString(36).slice(-10),
         };
-        cognito.createUser(createParam, (res, data) => {
+        cognito.adminCreateUser(createParam, (res, data) => {
           if (err) {
             reject(err);
             return;
           }
-          resolve(data['cognito:username']);
+          const cognitoUsername = data.User.Attributes.find(attribute => attribute.Name === 'cognito:username').Value;
+          const cognitoName = data.User.Attributes.find(attribute => attribute.Name === 'name').Value;
+          resolve({ cognitoUsername, cognitoName });
         });
 
-      } else if (data.length === 1) {
-        resolve(data[0]['cognito:username']);
+      } else if (data.Users.length === 1) {
+        const cognitoUsername = data.Users[0].Attributes.find(attribute => attribute.Name === 'cognito:username').Value;
+        const cognitoName = data.Users[0].Attributes.find(attribute => attribute.Name === 'name').Value;
+        resolve({ cognitoUsername, cognitoName });
 
       } else {
         reject({ message: 'You met strange data that have multi candidates.' });
@@ -61,14 +62,48 @@ const assignUser = (cognito, userPoolId) => email => {
   });
 };
 
+const createRecord = dynamoDB => (albumId, cognitoUsername, cognitoName, relative) => {
+
+  const dynamodbParam = {
+    RequestItems: {
+      "mitene-inferior2": [
+        {
+          PutRequest: {
+            Item: {
+              album_id: albumId,
+              album_property: `user#${cognitoUsername}`,
+              user_name: cognitoName,
+              relative: relative,
+              owner: false,
+              status: 'pending',
+            }
+          }
+        },
+      ]
+    },
+    ReturnConsumedCapacity: "TOTAL"
+  };
+
+  return new Promise((resolve, reject) => {
+    dynamoDB.batchWrite(dynamodbParam, (err, res) => {
+      if (err) {
+        reject(err)
+        return;
+      }
+      resolve({ message: 'success!' });
+    });
+  });
+}
+
 exports.handler = (event, context, callback) => {
 
+  const cognito = new AWS.CognitoIdentityServiceProvider();
+  const dynamoDB = new AWS.DynamoDB.DocumentClient();
   const userPoolId = process.env.COGNITO_USER_POOL_ID;
 
   const claims = event.requestContext.authorizer.claims;
   const albumOwn = claims['custom:album_own'];
   const cognitoUsername = claims['cognito:username'];
-  const cognitoName = claims.name;
   const requestBody = JSON.parse(event.body);
   const albumId = requestBody.albumId;
   const relative = requestBody.relative;
@@ -89,54 +124,25 @@ exports.handler = (event, context, callback) => {
     return;
   }
 
-  if (!albumName) {
-    responseError(callback, {error: 'You need album name.'}, 400);
-    return;
-  }
+  const createRecordDynamoDB = createRecord(dynamoDB);
+  const assignUserCognito = assignUser(cognito, userPoolId);
 
-  const dynamodbParam = {
-    RequestItems: {
-      "mitene-inferior2": [
-        {
-          PutRequest: {
-            Item: {
-              album_id: albumId,
-              album_property: 'basic',
-              album_name: albumName,
-            }
-          }
+  assignUserCognito(email)
+    .then(({ cognitoUsername, cognitoName }) => {
+      return createRecordDynamoDB(albumId, cognitoUsername, cognitoName, relative)
+    })
+    .then(data => {
+      callback(null, {
+        statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*"
         },
-        {
-          PutRequest: {
-            Item: {
-              album_id: albumId,
-              album_property: `user#${cognitoUsername}`,
-              user_name: cognitoName,
-              relative: relative,
-              owner: true,
-              status: 'pending',
-            }
-          }
-        },
-      ]
-    },
-    ReturnConsumedCapacity: "TOTAL"
-  };
-
-  new AWS.DynamoDB.DocumentClient().batchWrite(dynamodbParam, (err, res) => {
-    if (err) {
+        body: JSON.stringify({ message: 'success!' }),
+        isBase64Encoded: false
+      });
+    })
+    .catch(err => {
       responseError(callback, err);
-      return;
-    }
-    callback(null, {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*"
-      },
-      body: JSON.stringify({ message: 'success!' }),
-      isBase64Encoded: false
     });
-  });
-
 };
 
