@@ -354,7 +354,7 @@ const AlbumItem = ({ album: { basic: { albumId, albumName }, members } }) => {
               { members.map(member => <AlbumMember member={member} />) }
               <ListItem>
                 <ListItemIcon>
-                  <IconButton aria-label="Add" onClick={() => context.addMember(albumId)}>
+                  <IconButton aria-label="Add" onClick={() => context.inviteMemberForm(true)}>
                     <AddCircle />
                   </IconButton>
                 </ListItemIcon>
@@ -380,7 +380,7 @@ const Albums = ({ albums }) => {
           { albums.map(album => <AlbumItem album={album} />) }
           <ListItem>
             <ListItemIcon>
-              <IconButton aria-label="Create" onClick={() => context.createAlbum()}>
+              <IconButton aria-label="Create" onClick={() => context.createAlbumForm()}>
                 <AddCircle />
               </IconButton>
             </ListItemIcon>
@@ -408,7 +408,7 @@ const createAlbum = afterCallback => async (albumName, relative) => {
       }
     };
 
-    const res = await API.post('APIGatewayMiteneAlbum', '', requestBody);
+    const res = await API.post('APIGatewayMiteneAlbum', '/album', requestBody);
 
     // refresh id token for update user attribute
     Auth.currentUserPoolUser({ bypassCache: true });
@@ -421,7 +421,7 @@ const createAlbum = afterCallback => async (albumName, relative) => {
 
 const deleteAlbum = () => {};
 
-const addMember = async () => {
+const inviteMember = afterCallback => async (albumId, albumName, email, relative) => {
 
   //TODO ここにCognitoUserが必要なんだけど、どうやって取得するのか
   Auth.userAttributes();
@@ -436,16 +436,16 @@ const addMember = async () => {
         Authorization: idToken,
       },
       body: {
-        albumName,
+        email,
         relative,
       }
     };
 
-    const res = await API.post('APIGatewayMiteneAlbum', '', requestBody);
+    const res = await API.post('APIGatewayMiteneAlbum', `/album/${albumId}`, requestBody);
 
     // refresh id token for update user attribute
     Auth.currentUserPoolUser({ bypassCache: true });
-    afterCallback({ message: `Album ${albumName} を作成しました！` });
+    afterCallback({ message: `${email}にAlbum ${albumName} への招待を送信しました！` });
 
   } catch (e) {
     console.log(e);
@@ -456,10 +456,10 @@ const addMember = async () => {
 const removeMember = () => {};
 
 
-const AlbumControl = ({ classes, createAlbum }) => {
+const AlbumControl = ({ classes, createAlbumForm, inviteMemberForm }) => {
 
   return (
-    <AlbumContext.Provider value={{ classes, createAlbum, deleteAlbum, addMember, removeMember }}>
+    <AlbumContext.Provider value={{ classes, createAlbumForm, deleteAlbum, inviteMemberForm, removeMember }}>
       <Albums albums={[]} />
     </AlbumContext.Provider>
   );
@@ -468,6 +468,7 @@ const AlbumControl = ({ classes, createAlbum }) => {
 const NestedList = ({ classes, showSnackbar }) => {
 
   const [activeCreateAlbum, changeActiveCreateAlbum] = React.useState(false);
+  const [activeInviteMember, changeActiveInviteMember] = React.useState(false);
 
   return (
     <div>
@@ -520,7 +521,9 @@ const NestedList = ({ classes, showSnackbar }) => {
             </ListItem>
             <ListItem>
               <ListItemIcon>
+                <IconButton onClick={() => changeActiveInviteMember(true)}>
                 <AddCircle />
+                </IconButton>
               </ListItemIcon>
               <ListItemText primary="Add Family" />
             </ListItem>
@@ -538,13 +541,20 @@ const NestedList = ({ classes, showSnackbar }) => {
       <Divider variant="middle" style={{ marginBottom: '30px' }}/>
       <AlbumControl
         classes={classes}
-        createAlbum={changeActiveCreateAlbum}
+        createAlbumForm={changeActiveCreateAlbum}
+        inviteMemberForm={changeActiveInviteMember}
       />
       <DialogCreateAlbum
         classes={classes}
         isOpen={activeCreateAlbum}
         changeOpen={changeActiveCreateAlbum}
         submitCreateAlbum={createAlbum(showSnackbar)}
+      />
+      <DialogInviteMember
+        classes={classes}
+        isOpen={activeInviteMember}
+        changeOpen={changeActiveInviteMember}
+        submitCreateAlbum={inviteMember(showSnackbar)}
       />
       <Divider variant="middle" style={{ marginBottom: '30px' }}/>
       <List
@@ -618,21 +628,7 @@ const DialogCreateAlbum = ({ classes, isOpen, changeOpen, submitCreateAlbum }) =
         />
         <form className={classes.form} noValidate>
           <FormControl className={classes.formControl}>
-            <InputLabel htmlFor="max-width">maxWidth</InputLabel>
-            <Select
-              value={relative}
-              onChange={handleChangeRelative}
-              inputProps={{
-                name: 'max-width',
-                id: 'max-width',
-              }}
-            >
-              <MenuItem value="father">father</MenuItem>
-              <MenuItem value="mother">mother</MenuItem>
-              <MenuItem value="grand father">grand father</MenuItem>
-              <MenuItem value="grand mother">grand mother</MenuItem>
-              <MenuItem value="other">other</MenuItem>
-            </Select>
+            <SelectRelative {...{relative, handleChangeRelative}} />
           </FormControl>
         </form>
       </DialogContent>
@@ -645,6 +641,78 @@ const DialogCreateAlbum = ({ classes, isOpen, changeOpen, submitCreateAlbum }) =
         </Button>
       </DialogActions>
     </Dialog>
+  );
+};
+
+const DialogInviteMember = ({ classes, isOpen, changeOpen, submitInviteMember }) => {
+
+  const [relative, changeRelative] = React.useState('father');
+  const [email, changeEmail] = React.useState('');
+
+  const handleChangeEmail = e => changeEmail(e.target.value);
+  const handleChangeRelative = e => changeRelative(e.target.value);
+  const submit = () => {
+    changeOpen(false);
+    submitInviteMember(email, relative);
+  };
+
+  return (
+    <Dialog
+      open={isOpen}
+      onClose={() => changeOpen(false)}
+      aria-labelledby="form-dialog-title"
+    >
+      <DialogTitle id="form-dialog-title">Subscribe</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          招待する方のEmailアドレスを入力してください
+        </DialogContentText>
+        <TextField
+          autoFocus
+          margin="dense"
+          id="name"
+          label="Email"
+          type="text"
+          fullWidth
+          onChange={handleChangeEmail}
+        />
+        <form className={classes.form} noValidate>
+          <FormControl className={classes.formControl}>
+            <SelectRelative {...{relative, handleChangeRelative}} />
+          </FormControl>
+        </form>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => changeOpen(false)} color="primary">
+          Cancel
+        </Button>
+        <Button onClick={submit} color="primary">
+          Create
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+const SelectRelative = (relative, handleChangeRelative) => {
+  return (
+    <>
+      <InputLabel htmlFor="max-width">立場</InputLabel>
+      <Select
+        value={relative}
+        onChange={handleChangeRelative}
+        inputProps={{
+          name: 'max-width',
+          id: 'max-width',
+        }}
+      >
+        <MenuItem value="father">father</MenuItem>
+        <MenuItem value="mother">mother</MenuItem>
+        <MenuItem value="grand father">grand father</MenuItem>
+        <MenuItem value="grand mother">grand mother</MenuItem>
+        <MenuItem value="other">other</MenuItem>
+      </Select>
+    </>
   );
 };
 
