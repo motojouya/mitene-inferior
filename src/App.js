@@ -1,6 +1,7 @@
 // import React, { Component } from 'react';
 import React, { useState } from 'react';
 import Amplify, { API, Auth, I18n } from 'aws-amplify';
+import dynamoDB from 'aws-sdk/clients/DynamoDB';
 // import { Authenticator } from 'aws-amplify-react';
 import {
   withAuthenticator,
