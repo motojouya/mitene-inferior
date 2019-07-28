@@ -104,9 +104,9 @@ Amplify.configure({
       },
     ]
   }
-
-
 });
+
+//TODO dynamoDBを使えるようにしてデータを取ってきて表示
 
 // const AppWithAuth = () => <Authenticator />;
 

@@ -1,73 +1,112 @@
 const AWS = require('aws-sdk');
+const uuid = require('uuid/v4');
 
 AWS.config.update({region: 'ap-northeast-1'});
 
-const ALBUM_USER_ATTRIBUTES_PREFIX = 'custom:album';
-const ALBUM_OWN_USER_ATTRIBUTES = `${ALBUM_USER_ATTRIBUTES_PREFIX}_own`;
-const ALBUM_USER_ATTRIBUTES = Array(10).fill().map((_, i) => `${ALBUM_USER_ATTRIBUTES_PREFIX}${i}`);
-
-const getEmptyAlbumIdPlaceholder = (isOwner, userAttributes) => {
-
-  if (isOwner) {
-    const hasAlbumOwnIdAttributes = userAttributes
-      .map(attribute => attribute.Name)
-      .includes(ALBUM_OWN_USER_ATTRIBUTES);
-    return !hasAlbumOwnIdAttributes ? ALBUM_OWN_USER_ATTRIBUTES : null;
-
-  } else {
-    const albumIdAttributes = userAttributes
-      .filter(attribute => attribute.Name.startsWith(ALBUM_USER_ATTRIBUTES_PREFIX))
-      .map(attribute => attribute.Name);
-    return ALBUM_USER_ATTRIBUTES.find(attribute => !albumIdAttributes.includes(attribute));
-  }
+const responseError = (callback, messages, statusCode) => {
+  statusCode = statusCode || 500;
+  callback({
+    statusCode: statusCode,
+    headers: {
+      "Access-Control-Allow-Origin": "*"
+    },
+    body: JSON.stringify(message),
+    isBase64Encoded: false
+  });
 };
 
 exports.handler = (event, context, callback) => {
 
-  const { cognitoUsername, albumId, isOwner } = event;
+  const claims = event.requestContext.authorizer.claims;
+  const albumOwn = claims['custom:album_own'];
+  const cognitoUsername = claims['cognito:username'];
+  const cognitoName = claims.name;
+  const requestBody = JSON.parse(event.body);
+  const albumName = requestBody.albumName;
+  const relative = requestBody.relative;
 
-  const cognito = new AWS.CognitoIdentityServiceProvider();
-
-  if (!cognitoUsername || !albumId) {
-    callback({ error: 'There is no cognito user name or album id.' });
+  if (!cognitoUsername) {
+    responseError(callback, {error: 'You need sign in.'}, 400);
     return;
   }
 
-  const userPoolId = process.env.COGNITO_USER_POOL_ID;
+  if (albumOwn && albumOwn.length > 1) {
+    responseError(callback, {warning: 'You have already your own album.'}, 400);
+    return;
+  }
 
-  cognito.adminGetUser({
-    UserPoolId: userPoolId,
-    Username: cognitoUsername,
-  }, (err, res) => {
-    if (err) {
-      callback(err);
-      return;
-    }
+  if (!albumName) {
+    responseError(callback, {error: 'You need album name.'}, 400);
+    return;
+  }
 
-    const albumIdPlaceholder = getEmptyAlbumIdPlaceholder(isOwner, res.UserAttributes);
-    if (!albumIdPlaceholder) {
-      callback({ error: 'No more album id placeholder.' });
-      return;
-    }
+  const albumId = uuid();
 
-    const cognitoParam = {
-      UserAttributes: [
+  const dynamodbParam = {
+    RequestItems: {
+      "mitene-inferior2": [
         {
-          Name: albumIdPlaceholder,
-          Value: albumId,
+          PutRequest: {
+            Item: {
+              album_id: albumId,
+              album_property: 'basic',
+              album_name: albumName,
+            }
+          }
         },
-      ],
-      UserPoolId: userPoolId,
-      Username: cognitoUsername,
-    };
+        {
+          PutRequest: {
+            Item: {
+              album_id: albumId,
+              album_property: `user#${cognitoUsername}`,
+              user_name: cognitoName,
+              relative: relative,
+              owner: true,
+              status: 'pending',
+            }
+          }
+        },
+      ]
+    },
+    ReturnConsumedCapacity: "TOTAL"
+  };
 
-    cognito.adminUpdateUserAttributes(cognitoParam, (err, res) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-      callback(null, { message: 'success!' });
+  new AWS.DynamoDB.DocumentClient().batchWrite(dynamodbParam, (err, res) => {
+    if (err) {
+      responseError(callback, err);
+      return;
+    }
+    callback(null, {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*"
+      },
+      body: JSON.stringify({ message: 'success!' }),
+      isBase64Encoded: false
     });
   });
+
+
+  const dynamoDB = new AWS.DynamoDB.DocumentClient();
+  //TODO ここでアクセス可能なalbum一覧を取得
+  // ここGSI使わないといかんかなー
+  dynamoDB.getItem(dynamodbParam, (err, res) => {
+    if (err) {
+      responseError(callback, err);
+      return;
+    }
+    res.
+    callback(null, {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*"
+      },
+      body: JSON.stringify({ message: 'success!' }),
+      isBase64Encoded: false
+    });
+  });
+
+
+
 };
 
